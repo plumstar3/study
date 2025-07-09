@@ -4,7 +4,6 @@ import time
 import tensorflow as tf
 
 
-
 def conv_res_part_P(P_t,f,is_training,var_name):
 
     epsilon=0.0001
