@@ -1,0 +1,43 @@
+# OS files
+.DS_Store
+Thumbs.db
+
+# Build artifacts
+*.o
+*.exe
+*.dll
+*.jar
+*.class
+*.pyc
+
+# Ignore Excel files
+*.xlsx
+
+# Ignore SQLite database files
+*.sqlite
+
+*.csv
+
+*.png
+
+# Node.js
+node_modules/
+npm-debug.log
+
+# Python
+__pycache__/
+
+# Java
+target/
+
+# IDE specific files
+.vscode/
+.idea/
+*.iml
+
+# Log files
+*.log
+logs/
+
+# Sensitive files
+.env
