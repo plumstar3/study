@@ -1,110 +1,45 @@
 import numpy as np
 import time
-
 import tensorflow as tf
 
-
-
-def conv_res_part_P(P_t,f,is_training,var_name):
-
-    epsilon=0.0001
-    f0=5
-    s0=1
-    #############stage 1
-    X=tf.contrib.layers.flatten(P_t)
-
-
-    print('conv2 out P', X)
-
-
-    return X
-
-
-
-def conv_res_part_E(E_t,f,is_training,var_name):
-
-    epsilon=0.0001
-    f0=5
-    s0=1
-    #############stage 1
-
-    X = tf.layers.conv1d(E_t, filters=8, kernel_size=9, strides=1, padding='valid',
-                         kernel_initializer=tf.contrib.layers.xavier_initializer(), activation=None,
-                         name='Conv00' + var_name, data_format='channels_last', reuse=tf.AUTO_REUSE)
-
-    X = tf.nn.relu(X)
-    X = tf.layers.average_pooling1d(X, pool_size=2, strides=2, data_format='channels_last', name='average_pool')
-
-    X = tf.layers.conv1d(X, filters=12, kernel_size=3, strides=1, padding='valid',
-                         kernel_initializer=tf.contrib.layers.xavier_initializer(), activation=None,
-                         name='Conv0' + var_name, data_format='channels_last', reuse=tf.AUTO_REUSE)
-
-    X = tf.nn.relu(X)
-
-    X = tf.layers.average_pooling1d(X, pool_size=2, strides=2, data_format='channels_last', name='average_pool')
-
-    X = tf.layers.conv1d(X, filters=16, kernel_size=3, strides=1, padding='valid',
-                         kernel_initializer=tf.contrib.layers.xavier_initializer(), activation=None,
-                         name='Conv1'+var_name, data_format='channels_last',reuse=tf.AUTO_REUSE)
-
-
-
-    X = tf.nn.relu(X)
-    X = tf.layers.average_pooling1d(X, pool_size=2, strides=2, data_format='channels_last', name='average_pool')
-    print('conv1 out E',X)
-
-
-    X = tf.layers.conv1d(X, filters=20, kernel_size=3, strides=s0, padding='valid',
-                         kernel_initializer=tf.contrib.layers.xavier_initializer(), activation=None,
-                         name='Conv2'+var_name, data_format='channels_last',reuse=tf.AUTO_REUSE)
-    X = tf.nn.relu(X)
-    X = tf.layers.average_pooling1d(X, pool_size=2, strides=2, data_format='channels_last', name='average_pool')
-
-
-    print('E outttt',X)
-
-
-
-    return X
+from tensorflow.keras import layers, Model, Input
 
 
 
 
-def conv_res_part_S(S_t,f,is_training,var_name):
+def conv_res_part_P(input_tensor):
+    x = layers.Flatten()(input_tensor)
+    return x
 
 
 
+def conv_res_part_E(input_tensor, var_name):
+    x = layers.Conv1D(8, 9, activation='relu', padding='valid',
+                      kernel_initializer='glorot_uniform', name=f'Conv00_{var_name}')(input_tensor)
+    x = layers.AveragePooling1D(2, name=f'AvgPool00_{var_name}')(x)
+    x = layers.Conv1D(12, 3, activation='relu', padding='valid',
+                      kernel_initializer='glorot_uniform', name=f'Conv0_{var_name}')(x)
+    x = layers.AveragePooling1D(2, name=f'AvgPool1_{var_name}')(x)
+    x = layers.Conv1D(16, 3, activation='relu', padding='valid',
+                      kernel_initializer='glorot_uniform', name=f'Conv1_{var_name}')(x)
+    x = layers.AveragePooling1D(2, name=f'AvgPool2_{var_name}')(x)
+    x = layers.Conv1D(20, 3, activation='relu', padding='valid',
+                      kernel_initializer='glorot_uniform', name=f'Conv2_{var_name}')(x)
+    x = layers.AveragePooling1D(2, name=f'AvgPool3_{var_name}')(x)
+    x = layers.Flatten()(x)
+    return x
 
-    X = tf.layers.conv1d(S_t, filters=4, kernel_size=3, strides=1, padding='valid',
-                         kernel_initializer=tf.contrib.layers.xavier_initializer(), activation=None,
-                         name='Conv1'+var_name, data_format='channels_last',reuse=tf.AUTO_REUSE)
 
-
-
-    X = tf.nn.relu(X)
-
-    #print('conv1 out S'+' '+var_name,X)
-
-    X = tf.layers.average_pooling1d(X, pool_size=2, strides=2, data_format='channels_last', name='average_pool')
-
-    X = tf.layers.conv1d(X, filters=8, kernel_size=3, strides=1, padding='valid',
-                         kernel_initializer=tf.contrib.layers.xavier_initializer(), activation=None,
-                         name='Conv2'+var_name, data_format='channels_last',reuse=tf.AUTO_REUSE)
-
-
-    X = tf.nn.relu(X)
-
-    #print('conv2 out S' + ' ' + var_name, X)
-
-    X = tf.layers.conv1d(X, filters=12, kernel_size=2, strides=1, padding='valid',
-                         kernel_initializer=tf.contrib.layers.xavier_initializer(), activation=None,
-                         name='Conv3'+var_name, data_format='channels_last',reuse=tf.AUTO_REUSE)
-
-    X = tf.nn.relu(X)
-
-    #print('conv3 out S' + ' ' + var_name, X)
-
-    return X
+def conv_res_part_S(input_tensor, var_name):
+    x = layers.Conv1D(4, 3, activation='relu', padding='valid',
+                      kernel_initializer='glorot_uniform', name=f'Conv1S_{var_name}')(input_tensor)
+    x = layers.AveragePooling1D(2, name=f'AvgPoolS1_{var_name}')(x)
+    x = layers.Conv1D(8, 3, activation='relu', padding='valid',
+                      kernel_initializer='glorot_uniform', name=f'Conv2S_{var_name}')(x)
+    x = layers.Conv1D(12, 2, activation='relu', padding='valid',
+                      kernel_initializer='glorot_uniform', name=f'Conv3S_{var_name}')(x)
+    x = layers.Flatten()(x)
+    return x
 
 
 
@@ -640,6 +575,7 @@ def main_program(X, Index,num_units,num_layers,Max_it, learning_rate, batch_size
 
 
     return  rmse_tr,rmse_te,train_loss,validation_loss
+
 
 
 
