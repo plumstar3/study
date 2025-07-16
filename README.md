@@ -1,6 +1,7 @@
 # CNN-RNN-Yield-Prediction
 
-このREADMEファイルは'https://github.com/saeedkhaki92/CNN-RNN-Yield-Prediction'にあるREADMEファイルの内容となっています。
+このREADMEファイルはhttps://github.com/saeedkhaki92/CNN-RNN-Yield-Prediction　
+にあるREADMEファイルの内容となっています。
 
 
 This repository contains codes for the paper entitled <a href="https://www.frontiersin.org/articles/10.3389/fpls.2019.01750/full" target="_blank">"A CNN-RNN Framework for Crop Yield Prediction"</a> published in Frontiers in Plant Science Journal. The paper was authored by Saeed Khaki, Lizhi Wang, and Sotirios Archontoulis. In this paper, we proposed a framework for crop yield prediction.
