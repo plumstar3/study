@@ -11,7 +11,7 @@ from scipy.stats import pearsonr
 # ==============================================================================
 # 1. データローダー関連
 # ==============================================================================
-def load_and_preprocess_data(path='./soybean_samples.csv'):
+def load_and_preprocess_data(path='./Data/soybean_samples.csv'):
     """CSVファイルを読み込み、基本的な前処理（標準化など）を行う。"""
     if not os.path.exists(path):
         print(f"エラー: データファイル '{path}' が見つかりません。プログラムを終了します。")
