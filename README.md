@@ -1,6 +1,6 @@
 # CNN-RNN-Yield-Prediction
 
-このREADMEファイルはhttps://github.com/saeedkhaki92/CNN-RNN-Yield-Prediction　
+このREADMEファイルは<a href="https://github.com/saeedkhaki92/CNN-RNN-Yield-Prediction" target="_blank">"先行研究のオープンソースコード"</a>
 にあるREADMEファイルの内容となっています。
 
 
