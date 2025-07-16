@@ -1,5 +1,3 @@
-# run.py (完全最終版)
-
 import os
 import numpy as np
 import pandas as pd
@@ -8,9 +6,7 @@ from tensorflow.keras import layers, models, optimizers, losses, callbacks
 from sklearn.metrics import mean_squared_error
 from scipy.stats import pearsonr
 
-# ==============================================================================
 # 1. データローダー関連
-# ==============================================================================
 def load_and_preprocess_data(path='./Data/soybean_samples.csv'):
     """CSVファイルを読み込み、基本的な前処理（標準化など）を行う。"""
     if not os.path.exists(path):
@@ -76,7 +72,7 @@ class SoybeanDataGenerator(tf.keras.utils.Sequence):
         batch_seq_info = [self.sequences[i] for i in batch_indices]
         actual_batch_size = len(batch_seq_info)
 
-        # ✨入力データを辞書形式で準備
+        #入力データを辞書形式で準備
         X_dict = {
             'e_input': np.zeros((actual_batch_size, 5, 312)),
             's_input': np.zeros((actual_batch_size, 5, 66)),
@@ -111,9 +107,7 @@ class SoybeanDataGenerator(tf.keras.utils.Sequence):
     def on_epoch_end(self):
         np.random.shuffle(self.indices)
 
-# ==============================================================================
 # 2. モデル定義
-# ==============================================================================
 def create_cnn_block(input_layer, filters, kernel_sizes):
     """汎用的なCNNブロックを作成"""
     x = input_layer
@@ -158,18 +152,16 @@ def build_and_compile_model():
 
     model = models.Model(inputs=[e_input, s_input, p_input, ybar_input], outputs=[Yhat1, Yhat2])
     
-    # ✨【最終修正】 lossとmetricsを辞書形式で指定する
+    # lossとmetricsを辞書形式で指定する
     model.compile(optimizer=optimizers.Adam(learning_rate=0.0003),
                   loss={'Yhat1': losses.Huber(), 'Yhat2': losses.Huber()},
                   loss_weights={'Yhat1': 1.0, 'Yhat2': 0.0},
                   metrics={'Yhat1': 'mae'})
     return model
 
-# ==============================================================================
 # 3. 訓練と評価
-# ==============================================================================
 def run_training_and_evaluation():
-    print("\n🛠️ モデルの訓練を開始します...")
+    print("\n モデルの訓練を開始します...")
     df = load_and_preprocess_data()
     if df is None: return
 
@@ -196,14 +188,14 @@ def run_training_and_evaluation():
         model.fit(train_generator, epochs=200, callbacks=[callbacks.EarlyStopping(monitor='loss', patience=20)])
         
     model.save("soybean_yield_model.keras")
-    print("\n✅ モデル訓練完了・保存済み")
+    print("\n モデル訓練完了・保存済み")
 
-    print("\n🔍 モデルの評価を開始します...")
+    print("\n モデルの評価を開始します...")
     if len(val_generator) > 0:
         val_generator.on_epoch_end = lambda: None
         
         loaded_model = models.load_model("soybean_yield_model.keras")
-        print("✅ モデル読み込み完了")
+        print(" モデル読み込み完了")
 
         # 全ての検証データで一度に予測
         predictions = loaded_model.predict(val_generator)
@@ -213,21 +205,19 @@ def run_training_and_evaluation():
         Y1_test_true = np.concatenate([val_generator[i][1]['Yhat1'] for i in range(len(val_generator))])
         
         rmse = np.sqrt(mean_squared_error(Y1_test_true, Y1_pred))
-        print(f"\n📊 Test RMSE (final year): {rmse:.4f}")
+        print(f"\n Test RMSE (final year): {rmse:.4f}")
 
         if len(Y1_test_true) >= 2:
             corr, _ = pearsonr(Y1_test_true.flatten(), Y1_pred.flatten())
-            print(f"📈 相関係数 (final year): {corr:.4f}")
+            print(f" 相関係数 (final year): {corr:.4f}")
 
         np.savez("prediction_result.npz", Y1_true=Y1_test_true, Y1_pred=Y1_pred)
-        print("📝 予測結果を 'prediction_result.npz' に保存しました")
+        print(" 予測結果を 'prediction_result.npz' に保存しました")
     else:
         print("評価データがありません。評価をスキップします。")
 
-# ==============================================================================
 # 4. メイン実行ブロック
-# ==============================================================================
 if __name__ == "__main__":
-    print("🌱 大豆収量予測モデル - 総合実行スクリプト")
+    print(" 大豆収量予測モデル - 総合実行スクリプト")
     run_training_and_evaluation()
-    print("\n🎉 全処理が完了しました！")
+    print("\n 全処理が完了しました！")
