@@ -41,3 +41,8 @@ logs/
 
 # Sensitive files
 .env
+
+#7/16追加
+*.npz
+*.keras
+*.h5
