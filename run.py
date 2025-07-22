@@ -5,6 +5,8 @@ import tensorflow as tf
 from tensorflow.keras import layers, models, optimizers, losses, callbacks
 from sklearn.metrics import mean_squared_error
 from scipy.stats import pearsonr
+from tensorflow.keras.layers import Bidirectional
+
 
 # 1. データローダー関連
 def load_and_preprocess_data(path='./Data/soybean_data.csv'):
@@ -117,33 +119,47 @@ def create_cnn_block(input_layer, filters, kernel_sizes):
     return layers.Flatten()(x)
 
 def build_and_compile_model():
-    # --- 入力層の定義 (時系列データとして) ---
+    """
+    論文の設計思想（重み共有とTimeDistributed）を忠実に再現したモデルを構築する。
+    """
+    # --- 入力層の定義 (年ごとの変化を捉えるため、5つのタイムステップを持つ) ---
     e_input = layers.Input(shape=(5, 312), name="e_input")
     s_input = layers.Input(shape=(5, 66), name="s_input")
     p_input = layers.Input(shape=(5, 14), name="p_input")
     ybar_input = layers.Input(shape=(5, 1), name="ybar_input")
 
-    # --- CNNブロックの定義 (サブモデルとして) ---
+    # --- 特徴量処理ブロックの定義 (サブモデルとして) ---
+    # ✨【修正点1】: 6種類の気象データ全てに適用する「共有CNNブロック」を1つだけ定義
+    e_cnn_input = layers.Input(shape=(52, 1), name="e_cnn_input")
+    x = layers.Conv1D(8, 9, activation='relu', padding='valid')(e_cnn_input)
+    x = layers.AveragePooling1D(2)(x)
+    x = layers.Conv1D(12, 3, activation='relu', padding='valid')(x)
+    x = layers.AveragePooling1D(2)(x)
+    e_cnn_output = layers.Flatten()(x)
+    shared_e_cnn = models.Model(inputs=e_cnn_input, outputs=e_cnn_output, name="Shared_E_CNN")
+
+    # ✨【修正点2】: 6つの気象データを処理するためのラッパーモデルを定義
     e_proc_input = layers.Input(shape=(312,), name="e_proc_input")
-    e_reshaped = layers.Reshape((6, 52))(e_proc_input)
-    e_cnn_outs = [create_cnn_block(e_reshaped[:, i, :, None], [8, 16], [3, 3]) for i in range(6)]
-    e_cnn_model = models.Model(inputs=e_proc_input, outputs=layers.Concatenate()(e_cnn_outs), name="E_CNN_Model")
-    
+    e_reshaped = layers.Reshape((6, 52, 1))(e_proc_input)
+    # 6つの入力それぞれに、上で定義した「全く同じ共有CNN」を適用する
+    e_sub_outputs = [shared_e_cnn(e_reshaped[:, i]) for i in range(6)]
+    e_proc_output = layers.Concatenate()(e_sub_outputs)
+    e_processor = models.Model(inputs=e_proc_input, outputs=e_proc_output, name="E_Processor")
+
+    # 土壌(S)データ用CNNモデル
     s_proc_input = layers.Input(shape=(66,), name="s_proc_input")
     s_reshaped = layers.Reshape((6, 11))(s_proc_input)
-    s_cnn_out = create_cnn_block(s_reshaped, [16, 32], [3, 3])
-    s_cnn_model = models.Model(inputs=s_proc_input, outputs=s_cnn_out, name="S_CNN_Model")
+    s_cnn_out = layers.Flatten()(layers.Conv1D(16, 3, activation='relu')(s_reshaped))
+    s_processor = models.Model(inputs=s_proc_input, outputs=s_cnn_out, name="S_Processor")
 
-    # --- TimeDistributedで各タイムステップにCNNを適用 ---
-    e_processed = layers.TimeDistributed(e_cnn_model, name="TDD_E_CNN")(e_input)
-    s_processed = layers.TimeDistributed(s_cnn_model, name="TDD_S_CNN")(s_input)
+    # --- TimeDistributedで各タイムステップに特徴量処理を適用 ---
+    e_processed = layers.TimeDistributed(e_processor, name="TDD_E_Processor")(e_input)
+    s_processed = layers.TimeDistributed(s_processor, name="TDD_S_Processor")(s_input)
     p_processed = layers.TimeDistributed(layers.Flatten(), name="TDD_P_Flatten")(p_input)
 
-    # --- 全ての特徴量を結合 ---
+    # --- 全ての特徴量を結合し、LSTMに入力 ---
     merged = layers.Concatenate()([e_processed, s_processed, p_processed, ybar_input])
-    
-    # --- LSTM層 ---
-    x = layers.Dense(128, activation='relu')(merged) # LSTM前の次元圧縮
+    x = layers.Dense(128, activation='relu')(merged)
     x = layers.LSTM(64, return_sequences=True, dropout=0.2)(x)
     output = layers.TimeDistributed(layers.Dense(1))(x)
     
@@ -152,7 +168,6 @@ def build_and_compile_model():
 
     model = models.Model(inputs=[e_input, s_input, p_input, ybar_input], outputs=[Yhat1, Yhat2])
     
-    # lossとmetricsを辞書形式で指定する
     model.compile(optimizer=optimizers.Adam(learning_rate=0.0003),
                   loss={'Yhat1': losses.Huber(), 'Yhat2': losses.Huber()},
                   loss_weights={'Yhat1': 1.0, 'Yhat2': 0.0},
